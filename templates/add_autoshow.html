@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Add Auto Show</title>
+    <script>
+      function addCar() {
+        // Clone the first car entry div and clear its input values.
+        var carDiv = document.querySelector('.car');
+        var newCar = carDiv.cloneNode(true);
+        var inputs = newCar.getElementsByTagName('input');
+        for(var i = 0; i < inputs.length; i++){
+          inputs[i].value = "";
+        }
+        document.getElementById('cars').appendChild(newCar);
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Add New Auto Show</h1>
+    <form method="post">
+      <h2>Auto Show Details</h2>
+      <label>Show Name:</label>
+      <input type="text" name="show_name" required><br>
+      <label>City:</label>
+      <input type="text" name="city" required><br>
+      <label>State:</label>
+      <input type="text" name="state" required><br>
+      <label>Start Date:</label>
+      <input type="date" name="start_date" required><br>
+      <label>End Date:</label>
+      <input type="date" name="end_date" required><br>
+      
+      <h2>Organizer Details</h2>
+      <label>Organization Name:</label>
+      <input type="text" name="org_name" required><br>
+      <label>Contact Info:</label>
+      <input type="text" name="org_contact"><br>
+      
+      <h2>Car Details</h2>
+      <div id="cars">
+        <div class="car">
+          <label>Manufacturer:</label>
+          <input type="text" name="manufacturer[]" required><br>
+          <label>Model:</label>
+          <input type="text" name="model[]" required><br>
+          <label>Year:</label>
+          <input type="number" name="year[]" required><br>
+          <label>Price:</label>
+          <input type="text" name="price[]" required><br>
+        </div>
+      </div>
+      <button type="button" onclick="addCar()">Add Another Car</button><br><br>
+      
+      <button type="submit">Add Auto Show</button>
+    </form>
+  </body>
+</html>

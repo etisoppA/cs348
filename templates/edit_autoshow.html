@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Edit Auto Show</title>
+    <script>
+      function addCar() {
+        var carDiv = document.querySelector('.car');
+        var newCar = carDiv.cloneNode(true);
+        var inputs = newCar.getElementsByTagName('input');
+        for(var i = 0; i < inputs.length; i++){
+          inputs[i].value = "";
+        }
+        document.getElementById('cars').appendChild(newCar);
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Edit Auto Show</h1>
+    <form method="post">
+      <h2>Auto Show Details</h2>
+      <label>Show Name:</label>
+      <input type="text" name="show_name" value="{{ autoshow.name }}" required><br>
+      <label>City:</label>
+      <input type="text" name="city" value="{{ autoshow.city }}" required><br>
+      <label>State:</label>
+      <input type="text" name="state" value="{{ autoshow.state }}" required><br>
+      <label>Start Date:</label>
+      <input type="date" name="start_date" value="{{ autoshow.start_date }}" required><br>
+      <label>End Date:</label>
+      <input type="date" name="end_date" value="{{ autoshow.end_date }}" required><br>
+      
+      <h2>Organizer Details</h2>
+      <label>Organization Name:</label>
+      <input type="text" name="org_name" value="{{ organization.name }}" required><br>
+      <label>Contact Info:</label>
+      <input type="text" name="org_contact" value="{{ organization.contact_info }}"><br>
+      
+      <h2>Car Details</h2>
+      <div id="cars">
+        {% for car in cars %}
+        <div class="car">
+          <label>Manufacturer:</label>
+          <input type="text" name="manufacturer[]" value="{{ car.manufacturer }}" required><br>
+          <label>Model:</label>
+          <input type="text" name="model[]" value="{{ car.model }}" required><br>
+          <label>Year:</label>
+          <input type="number" name="year[]" value="{{ car.year }}" required><br>
+          <label>Price:</label>
+          <input type="text" name="price[]" value="{{ car.price }}" required><br>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" onclick="addCar()">Add Another Car</button><br><br>
+      
+      <button type="submit">Update Auto Show</button>
+    </form>
+  </body>
+</html>
