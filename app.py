@@ -80,7 +80,7 @@ def add_autoshow():
 @app.route('/edit_autoshow/<int:id>', methods=['GET', 'POST'])
 def edit_autoshow(id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, prepared=True)
     
     if request.method == 'POST':
         show_name  = request.form['show_name']

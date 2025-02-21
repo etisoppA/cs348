@@ -1,40 +1,43 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Auto Shows</title>
-  </head>
-  <body>
-    <h1>Auto Shows</h1>
-    <a href="{{ url_for('add_autoshow') }}">Add New Auto Show</a>
-    <table border="1">
-      <tr>
-        <th>ID</th>
-        <th>Show Name</th>
-        <th>City</th>
-        <th>State</th>
-        <th>Start Date</th>
-        <th>End Date</th>
-        <th>Organizer</th>
-        <th>Actions</th>
-      </tr>
-      {% for show in autoshows %}
-      <tr>
-        <td>{{ show.id }}</td>
-        <td>{{ show.name }}</td>
-        <td>{{ show.city }}</td>
-        <td>{{ show.state }}</td>
-        <td>{{ show.start_date }}</td>
-        <td>{{ show.end_date }}</td>
-        <td>{{ show.org_name }}</td>
-        <td>
-          <a href="{{ url_for('edit_autoshow', id=show.id) }}">Edit</a>
-          <form action="{{ url_for('delete_autoshow', id=show.id) }}" method="post" style="display:inline;">
-            <button type="submit">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </table>
-  </body>
+
+<head>
+  <meta charset="utf-8">
+  <title>Auto Shows</title>
+</head>
+
+<body>
+  <h1>Auto Shows</h1>
+  <a href="{{ url_for('add_autoshow') }}">Add New Auto Show</a>
+  <table border="1">
+    <tr>
+      <th>ID</th>
+      <th>Show Name</th>
+      <th>City</th>
+      <th>State</th>
+      <th>Start Date</th>
+      <th>End Date</th>
+      <th>Organizer</th>
+      <th>Actions</th>
+    </tr>
+    {% for show in autoshows %}
+    <tr>
+      <td>{{ show.id }}</td>
+      <td>{{ show.name }}</td>
+      <td>{{ show.city }}</td>
+      <td>{{ show.state }}</td>
+      <td>{{ show.start_date }}</td>
+      <td>{{ show.end_date }}</td>
+      <td>{{ show.org_name }}</td>
+      <td>
+        <a href="{{ url_for('edit_autoshow', id=show.id) }}">Edit</a>
+        <form action="{{ url_for('delete_autoshow', id=show.id) }}" method="post" style="display:inline;">
+          <button type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+
 </html>
