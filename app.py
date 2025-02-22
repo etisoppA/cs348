@@ -14,21 +14,41 @@ def get_db_connection():
 
 @app.route('/')
 def index():
+    # Read optional filter parameters from query string.
+    show_name        = request.args.get('show_name') or None
+    city             = request.args.get('city') or None
+    state            = request.args.get('state') or None
+    start_date       = request.args.get('start_date') or None
+    end_date         = request.args.get('end_date') or None
+    car_manufacturer = request.args.get('car_manufacturer') or None
+    org_name         = request.args.get('org_name') or None
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    # Retrieve auto shows along with their organizer details.
-    query = """
-      SELECT a.id, a.name, a.city, a.state, a.start_date, a.end_date,
-             o.name AS org_name, o.contact_info AS org_contact
-      FROM auto_shows a
-      LEFT JOIN auto_show_organizations aso ON a.id = aso.auto_show_id
-      LEFT JOIN organizations o ON aso.organization_id = o.id
-    """
-    cursor.execute(query)
-    autoshows = cursor.fetchall()
+    
+    # Get list of organizers for the drop-down.
+    cursor.callproc('sp_get_organizers')
+    organizers = []
+    for result in cursor.stored_results():
+        organizers = result.fetchall()
+    
+    # If any filter is provided, call the filtering stored procedure.
+    cursor.callproc('sp_filter_autoshows', (
+        show_name,
+        city,
+        state,
+        start_date,
+        end_date,
+        car_manufacturer,
+        org_name
+    ))
+    autoshows = []
+    for result in cursor.stored_results():
+        autoshows = result.fetchall()
+        
     cursor.close()
     conn.close()
-    return render_template('index.html', autoshows=autoshows)
+    return render_template('index.html', autoshows=autoshows, organizers=organizers)
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_autoshow():

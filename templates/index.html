@@ -8,7 +8,41 @@
 
 <body>
   <h1>Auto Shows</h1>
-  <a href="{{ url_for('add_autoshow') }}">Add New Auto Show</a>
+
+  <!-- Filter Form -->
+  <h2>Filter Auto Shows</h2>
+  <form method="get" action="{{ url_for('index') }}">
+    <label>Show Name:</label>
+    <input type="text" name="show_name" value="{{ request.args.get('show_name', '') }}"><br>
+
+    <label>City:</label>
+    <input type="text" name="city" value="{{ request.args.get('city', '') }}"><br>
+
+    <label>State:</label>
+    <input type="text" name="state" value="{{ request.args.get('state', '') }}"><br>
+
+    <label>Start Date (from):</label>
+    <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}"><br>
+
+    <label>End Date (to):</label>
+    <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}"><br>
+
+    <label>Car Manufacturer:</label>
+    <input type="text" name="car_manufacturer" value="{{ request.args.get('car_manufacturer', '') }}"><br>
+
+    <label>Organizer:</label>
+    <select name="org_name">
+      <option value="">All</option>
+      {% for org in organizers %}
+      <option value="{{ org.name }}" {% if request.args.get('org_name')==org.name %}selected{% endif %}>{{ org.name }}
+      </option>
+      {% endfor %}
+    </select><br>
+
+    <button type="submit">Apply Filters</button>
+  </form>
+
+  <a href="{{ url_for('add_autoshow') }}"><br>Add New Auto Show</a>
   <table border="1">
     <tr>
       <th>ID</th>
