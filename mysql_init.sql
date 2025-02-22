@@ -74,3 +74,14 @@ BEGIN
   INNER JOIN auto_show_organizations aso ON o.id = aso.organization_id;
 END //
 DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE sp_get_autoshow_cars(
+    IN p_auto_show_id INT
+)
+BEGIN
+    SELECT manufacturer, model, year, price
+    FROM auto_show_cars
+    WHERE auto_show_id = p_auto_show_id;
+END //
+DELIMITER ;

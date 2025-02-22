@@ -9,7 +9,6 @@
 <body>
   <h1>Auto Shows</h1>
 
-  <!-- Filter Form -->
   <h2>Filter Auto Shows</h2>
   <form method="get" action="{{ url_for('index') }}">
     <label>Show Name:</label>
@@ -68,6 +67,7 @@
         <form action="{{ url_for('delete_autoshow', id=show.id) }}" method="post" style="display:inline;">
           <button type="submit">Delete</button>
         </form>
+        <a href="{{ url_for('view_cars', auto_show_id=show.id) }}">View Cars</a>
       </td>
     </tr>
     {% endfor %}

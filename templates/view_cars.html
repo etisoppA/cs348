@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ auto_show_name }}</title>
+</head>
+<body>
+  <h1>{{ auto_show_name }}</h1>
+  <table border="1">
+    <tr>
+      <th>Manufacturer</th>
+      <th>Model</th>
+      <th>Year</th>
+      <th>Price</th>
+    </tr>
+    {% for car in cars %}
+    <tr>
+      <td>{{ car.manufacturer }}</td>
+      <td>{{ car.model }}</td>
+      <td>{{ car.year }}</td>
+      <td>{{ car.price }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <br>
+  <a href="{{ url_for('index') }}">Back to Home Page</a>
+</body>
+</html>

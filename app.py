@@ -14,7 +14,7 @@ def get_db_connection():
 
 @app.route('/')
 def index():
-    # Read optional filter parameters from query string.
+    # Read optional filter parameters from query string
     show_name        = request.args.get('show_name') or None
     city             = request.args.get('city') or None
     state            = request.args.get('state') or None
@@ -26,13 +26,13 @@ def index():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get list of organizers for the drop-down.
+    # Get list of organizers for the drop-down
     cursor.callproc('sp_get_organizers')
     organizers = []
     for result in cursor.stored_results():
         organizers = result.fetchall()
     
-    # If any filter is provided, call the filtering stored procedure.
+    # Call the filtering stored procedure
     cursor.callproc('sp_filter_autoshows', (
         show_name,
         city,
@@ -50,19 +50,40 @@ def index():
     conn.close()
     return render_template('index.html', autoshows=autoshows, organizers=organizers)
 
+@app.route('/view_cars/<int:auto_show_id>')
+def view_cars(auto_show_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Retrieve the auto show's name
+    query = "SELECT name FROM auto_shows WHERE id = %s"
+    cursor.execute(query, (auto_show_id,))
+    autoshow_info = cursor.fetchone()
+    auto_show_name = autoshow_info['name']
+    
+    # Call stored procedure to retrieve the cars for this auto show
+    cursor.callproc('sp_get_autoshow_cars', (auto_show_id,))
+    cars = []
+    for result in cursor.stored_results():
+        cars = result.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return render_template('view_cars.html', cars=cars, auto_show_name=auto_show_name)
+
 @app.route('/add', methods=['GET', 'POST'])
 def add_autoshow():
     if request.method == 'POST':
         show_name  = request.form['show_name']
         city       = request.form['city']
         state      = request.form['state']
-        start_date = request.form['start_date']  # Format: YYYY-MM-DD
+        start_date = request.form['start_date']
         end_date   = request.form['end_date']
         
         org_name    = request.form['org_name']
         org_contact = request.form['org_contact']
         
-        # Use getlist() to obtain all submitted car details.
+        # Use getlist() to obtain all submitted car details
         manufacturers = request.form.getlist("manufacturer[]")
         models        = request.form.getlist("model[]")
         years         = request.form.getlist("year[]")
@@ -131,7 +152,7 @@ def edit_autoshow(id):
             cursor.execute(query, (org_name, org_contact, org_id))
         
         # For simplicity, delete all existing car records for the auto show,
-        # then reinsert the submitted ones.
+        # then reinsert the submitted ones
         query = "DELETE FROM auto_show_cars WHERE auto_show_id = %s"
         cursor.execute(query, (id,))
         
@@ -144,7 +165,7 @@ def edit_autoshow(id):
         conn.close()
         return redirect(url_for('index'))
     else:
-        # GET request: Fetch current auto show and organizer data.
+        # Fetch current auto show and organizer data
         query = "SELECT * FROM auto_shows WHERE id = %s"
         cursor.execute(query, (id,))
         autoshow = cursor.fetchone()
