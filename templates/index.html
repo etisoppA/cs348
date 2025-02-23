@@ -41,10 +41,12 @@
     <button type="submit">Apply Filters</button>
   </form>
 
+  <p>Total Cars: {{ total_cars }}</p>
+  <p>Average Price: {% if avg_price is not none %}${{ avg_price|round(2) }}{% else %}N/A{% endif %}</p>
+
   <a href="{{ url_for('add_autoshow') }}"><br>Add New Auto Show</a>
   <table border="1">
     <tr>
-      <th>ID</th>
       <th>Show Name</th>
       <th>City</th>
       <th>State</th>
@@ -55,7 +57,6 @@
     </tr>
     {% for show in autoshows %}
     <tr>
-      <td>{{ show.id }}</td>
       <td>{{ show.name }}</td>
       <td>{{ show.city }}</td>
       <td>{{ show.state }}</td>

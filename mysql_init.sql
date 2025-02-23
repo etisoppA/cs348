@@ -85,3 +85,55 @@ BEGIN
     WHERE auto_show_id = p_auto_show_id;
 END //
 DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE sp_total_cars(
+    IN p_show_name VARCHAR(255),
+    IN p_city VARCHAR(255),
+    IN p_state VARCHAR(255),
+    IN p_start_date DATE,
+    IN p_end_date DATE,
+    IN p_car_manufacturer VARCHAR(255),
+    IN p_org_name VARCHAR(255)
+)
+BEGIN
+  SELECT COUNT(c.id) AS total_cars
+  FROM auto_shows a
+  LEFT JOIN auto_show_organizations aso ON a.id = aso.auto_show_id
+  LEFT JOIN organizations o ON aso.organization_id = o.id
+  LEFT JOIN auto_show_cars c ON a.id = c.auto_show_id
+  WHERE (p_show_name IS NULL OR a.name LIKE CONCAT('%', p_show_name, '%'))
+    AND (p_city IS NULL OR a.city LIKE CONCAT('%', p_city, '%'))
+    AND (p_state IS NULL OR a.state LIKE CONCAT('%', p_state, '%'))
+    AND (p_start_date IS NULL OR a.start_date >= p_start_date)
+    AND (p_end_date IS NULL OR a.end_date <= p_end_date)
+    AND (p_car_manufacturer IS NULL OR c.manufacturer LIKE CONCAT('%', p_car_manufacturer, '%'))
+    AND (p_org_name IS NULL OR o.name = p_org_name);
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE sp_avg_price(
+    IN p_show_name VARCHAR(255),
+    IN p_city VARCHAR(255),
+    IN p_state VARCHAR(255),
+    IN p_start_date DATE,
+    IN p_end_date DATE,
+    IN p_car_manufacturer VARCHAR(255),
+    IN p_org_name VARCHAR(255)
+)
+BEGIN
+  SELECT AVG(c.price) AS avg_price
+  FROM auto_shows a
+  LEFT JOIN auto_show_organizations aso ON a.id = aso.auto_show_id
+  LEFT JOIN organizations o ON aso.organization_id = o.id
+  LEFT JOIN auto_show_cars c ON a.id = c.auto_show_id
+  WHERE (p_show_name IS NULL OR a.name LIKE CONCAT('%', p_show_name, '%'))
+    AND (p_city IS NULL OR a.city LIKE CONCAT('%', p_city, '%'))
+    AND (p_state IS NULL OR a.state LIKE CONCAT('%', p_state, '%'))
+    AND (p_start_date IS NULL OR a.start_date >= p_start_date)
+    AND (p_end_date IS NULL OR a.end_date <= p_end_date)
+    AND (p_car_manufacturer IS NULL OR c.manufacturer LIKE CONCAT('%', p_car_manufacturer, '%'))
+    AND (p_org_name IS NULL OR o.name = p_org_name);
+END //
+DELIMITER ;

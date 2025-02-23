@@ -14,7 +14,7 @@ def get_db_connection():
 
 @app.route('/')
 def index():
-    # Read optional filter parameters from query string
+    # Read optional filter parameters from query string.
     show_name        = request.args.get('show_name') or None
     city             = request.args.get('city') or None
     state            = request.args.get('state') or None
@@ -26,13 +26,13 @@ def index():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get list of organizers for the drop-down
+    # Get list of organizers for the drop-down.
     cursor.callproc('sp_get_organizers')
     organizers = []
     for result in cursor.stored_results():
         organizers = result.fetchall()
     
-    # Call the filtering stored procedure
+    # Call the filtering stored procedure to retrieve auto shows.
     cursor.callproc('sp_filter_autoshows', (
         show_name,
         city,
@@ -45,10 +45,47 @@ def index():
     autoshows = []
     for result in cursor.stored_results():
         autoshows = result.fetchall()
-        
+    
+    # Use a separate cursor to call the total cars procedure.
+    cursor2 = conn.cursor(dictionary=True)
+    cursor2.callproc('sp_total_cars', (
+        show_name,
+        city,
+        state,
+        start_date,
+        end_date,
+        car_manufacturer,
+        org_name
+    ))
+    total_cars = 0
+    for result in cursor2.stored_results():
+        row = result.fetchone()
+        if row:
+            total_cars = row.get('total_cars', 0)
+    cursor2.close()
+    
+    # Use another cursor to call the average price procedure.
+    cursor3 = conn.cursor(dictionary=True)
+    cursor3.callproc('sp_avg_price', (
+        show_name,
+        city,
+        state,
+        start_date,
+        end_date,
+        car_manufacturer,
+        org_name
+    ))
+    avg_price = None
+    for result in cursor3.stored_results():
+        row = result.fetchone()
+        if row:
+            avg_price = row.get('avg_price')
+    cursor3.close()
+
     cursor.close()
     conn.close()
-    return render_template('index.html', autoshows=autoshows, organizers=organizers)
+    
+    return render_template('index.html', autoshows=autoshows, organizers=organizers, total_cars=total_cars, avg_price=avg_price)
 
 @app.route('/view_cars/<int:auto_show_id>')
 def view_cars(auto_show_id):
@@ -194,6 +231,12 @@ def delete_autoshow(id):
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # Retrieve the organization_id
+    query = "SELECT organization_id FROM auto_show_organizations WHERE auto_show_id = %s"
+    cursor.execute(query, (id,))
+    org_result = cursor.fetchone()
+    org_id = org_result[0]
+
     # Delete related car records
     query = "DELETE FROM auto_show_cars WHERE auto_show_id = %s"
     cursor.execute(query, (id,))
@@ -205,6 +248,10 @@ def delete_autoshow(id):
     # Delete the auto show record
     query = "DELETE FROM auto_shows WHERE id = %s"
     cursor.execute(query, (id,))
+
+    # Delete the organization record
+    query = "DELETE FROM organizations WHERE id = %s"
+    cursor.execute(query, (org_id,))
     
     conn.commit()
     cursor.close()
