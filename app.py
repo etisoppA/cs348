@@ -14,7 +14,7 @@ def get_db_connection():
 
 @app.route('/')
 def index():
-    # Read optional filter parameters from query string.
+    # Read optional filter parameters from query string
     show_name        = request.args.get('show_name') or None
     city             = request.args.get('city') or None
     state            = request.args.get('state') or None
@@ -26,13 +26,13 @@ def index():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get list of organizers for the drop-down.
+    # Get list of organizers for the drop-down
     cursor.callproc('sp_get_organizers')
     organizers = []
     for result in cursor.stored_results():
         organizers = result.fetchall()
     
-    # Call the filtering stored procedure to retrieve auto shows.
+    # Call the filtering stored procedure to retrieve auto shows
     cursor.callproc('sp_filter_autoshows', (
         show_name,
         city,
@@ -46,7 +46,7 @@ def index():
     for result in cursor.stored_results():
         autoshows = result.fetchall()
     
-    # Use a separate cursor to call the total cars procedure.
+    # Call the total cars procedure
     cursor2 = conn.cursor(dictionary=True)
     cursor2.callproc('sp_total_cars', (
         show_name,
@@ -64,7 +64,7 @@ def index():
             total_cars = row.get('total_cars', 0)
     cursor2.close()
     
-    # Use another cursor to call the average price procedure.
+    # Call the average price procedure
     cursor3 = conn.cursor(dictionary=True)
     cursor3.callproc('sp_avg_price', (
         show_name,
