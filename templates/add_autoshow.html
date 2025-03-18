@@ -6,7 +6,6 @@
   <title>Add Auto Show</title>
   <script>
     function addCar() {
-      // Clone the first car entry div and clear its input values
       var carDiv = document.querySelector('.car');
       var newCar = carDiv.cloneNode(true);
       var inputs = newCar.getElementsByTagName('input');
@@ -15,12 +14,30 @@
       }
       document.getElementById('cars').appendChild(newCar);
     }
+    
     function deleteCar(button) {
-      // Don't delete if it's the last car
       if (document.getElementsByClassName('car').length > 1) {
         button.parentElement.remove();
       } else {
         alert("Cannot delete the last car. At least one car is required.");
+      }
+    }
+    
+    function addOrganizer() {
+      var organizerDiv = document.querySelector('.organizer');
+      var newOrganizer = organizerDiv.cloneNode(true);
+      var inputs = newOrganizer.getElementsByTagName('input');
+      for (var i = 0; i < inputs.length; i++) {
+        inputs[i].value = "";
+      }
+      document.getElementById('organizers').appendChild(newOrganizer);
+    }
+    
+    function deleteOrganizer(button) {
+      if (document.getElementsByClassName('organizer').length > 1) {
+        button.parentElement.remove();
+      } else {
+        alert("Cannot delete the last organizer. At least one organizer is required.");
       }
     }
   </script>
@@ -42,10 +59,16 @@
     <input type="date" name="end_date" required><br>
 
     <h2>Organizer Details</h2>
-    <label>Organization Name:</label>
-    <input type="text" name="org_name" required><br>
-    <label>Contact Info:</label>
-    <input type="text" name="org_contact"><br>
+    <div id="organizers">
+      <div class="organizer">
+        <label>Organization Name:</label>
+        <input type="text" name="org_name[]" required><br>
+        <label>Contact Info:</label>
+        <input type="text" name="org_contact[]"><br>
+        <button type="button" class="delete-organizer" onclick="deleteOrganizer(this)">Delete Organizer</button>
+      </div>
+    </div>
+    <button type="button" onclick="addOrganizer()">Add Another Organizer</button><br><br>
 
     <h2>Car Details</h2>
     <div id="cars">

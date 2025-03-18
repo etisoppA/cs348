@@ -14,12 +14,30 @@
       }
       document.getElementById('cars').appendChild(newCar);
     }
+
     function deleteCar(button) {
-      // Don't delete if it's the last car
       if (document.getElementsByClassName('car').length > 1) {
         button.parentElement.remove();
       } else {
         alert("Cannot delete the last car. At least one car is required.");
+      }
+    }
+
+    function addOrganizer() {
+      var organizerDiv = document.querySelector('.organizer');
+      var newOrganizer = organizerDiv.cloneNode(true);
+      var inputs = newOrganizer.getElementsByTagName('input');
+      for (var i = 0; i < inputs.length; i++) {
+        inputs[i].value = "";
+      }
+      document.getElementById('organizers').appendChild(newOrganizer);
+    }
+
+    function deleteOrganizer(button) {
+      if (document.getElementsByClassName('organizer').length > 1) {
+        button.parentElement.remove();
+      } else {
+        alert("Cannot delete the last organizer. At least one organizer is required.");
       }
     }
   </script>
@@ -41,10 +59,18 @@
     <input type="date" name="end_date" value="{{ autoshow.end_date }}" required><br>
 
     <h2>Organizer Details</h2>
-    <label>Organization Name:</label>
-    <input type="text" name="org_name" value="{{ organization.name }}" required><br>
-    <label>Contact Info:</label>
-    <input type="text" name="org_contact" value="{{ organization.contact_info }}"><br>
+    <div id="organizers">
+      {% for org in organizations %}
+      <div class="organizer">
+        <label>Organization Name:</label>
+        <input type="text" name="org_name[]" value="{{ org.name }}" required><br>
+        <label>Contact Info:</label>
+        <input type="text" name="org_contact[]" value="{{ org.contact_info }}"><br>
+        <button type="button" class="delete-organizer" onclick="deleteOrganizer(this)">Delete Organizer</button>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" onclick="addOrganizer()">Add Another Organizer</button><br><br>
 
     <h2>Car Details</h2>
     <div id="cars">

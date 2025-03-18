@@ -117,10 +117,9 @@ def add_autoshow():
         start_date = request.form['start_date']
         end_date   = request.form['end_date']
         
-        org_name    = request.form['org_name']
-        org_contact = request.form['org_contact']
+        org_names    = request.form.getlist("org_name[]")
+        org_contacts = request.form.getlist("org_contact[]")
         
-        # Use getlist() to obtain all submitted car details
         manufacturers = request.form.getlist("manufacturer[]")
         models        = request.form.getlist("model[]")
         years         = request.form.getlist("year[]")
@@ -134,14 +133,20 @@ def add_autoshow():
         cursor.execute(query, (show_name, city, state, start_date, end_date))
         auto_show_id = cursor.lastrowid
 
-        # Insert organization
-        query = "INSERT INTO organizations (name, contact_info) VALUES (%s, %s)"
-        cursor.execute(query, (org_name, org_contact))
-        org_id = cursor.lastrowid
-
-        # Link auto show with organization
-        query = "INSERT INTO auto_show_organizations (auto_show_id, organization_id) VALUES (%s, %s)"
-        cursor.execute(query, (auto_show_id, org_id))
+        # Process each organizer
+        for org_name, org_contact in zip(org_names, org_contacts):
+            cursor.execute("SELECT id FROM organizations WHERE name = %s", (org_name,))
+            org_result = cursor.fetchone()
+            
+            if org_result:
+                org_id = org_result[0]
+            else:
+                cursor.execute("INSERT INTO organizations (name, contact_info) VALUES (%s, %s)", 
+                             (org_name, org_contact))
+                org_id = cursor.lastrowid
+            
+            cursor.execute("INSERT INTO auto_show_organizations (auto_show_id, organization_id) VALUES (%s, %s)",
+                         (auto_show_id, org_id))
 
         # Insert each car for this auto show
         query = "INSERT INTO auto_show_cars (auto_show_id, manufacturer, model, year, price) VALUES (%s, %s, %s, %s, %s)"
@@ -167,8 +172,8 @@ def edit_autoshow(id):
         start_date = request.form['start_date']
         end_date   = request.form['end_date']
         
-        org_name    = request.form['org_name']
-        org_contact = request.form['org_contact']
+        org_names    = request.form.getlist("org_name[]")
+        org_contacts = request.form.getlist("org_contact[]")
         
         manufacturers = request.form.getlist("manufacturer[]")
         models        = request.form.getlist("model[]")
@@ -179,14 +184,27 @@ def edit_autoshow(id):
         query = "UPDATE auto_shows SET name=%s, city=%s, state=%s, start_date=%s, end_date=%s WHERE id=%s"
         cursor.execute(query, (show_name, city, state, start_date, end_date, id))
         
-        # Get organization id from the linking table
-        query = "SELECT organization_id FROM auto_show_organizations WHERE auto_show_id = %s"
+        # Remove all existing organizer links
+        query = "DELETE FROM auto_show_organizations WHERE auto_show_id = %s"
         cursor.execute(query, (id,))
-        result = cursor.fetchone()
-        if result:
-            org_id = result['organization_id']
-            query = "UPDATE organizations SET name=%s, contact_info=%s WHERE id=%s"
-            cursor.execute(query, (org_name, org_contact, org_id))
+        
+        # Process each organizer
+        for org_name, org_contact in zip(org_names, org_contacts):
+            cursor.execute("SELECT id FROM organizations WHERE name = %s", (org_name,))
+            org_result = cursor.fetchone()
+            
+            if org_result:
+                org_id = org_result['id']
+                if org_contact:
+                    cursor.execute("UPDATE organizations SET contact_info=%s WHERE id=%s", 
+                                 (org_contact, org_id))
+            else:
+                cursor.execute("INSERT INTO organizations (name, contact_info) VALUES (%s, %s)", 
+                             (org_name, org_contact))
+                org_id = cursor.lastrowid
+            
+            cursor.execute("INSERT INTO auto_show_organizations (auto_show_id, organization_id) VALUES (%s, %s)",
+                         (id, org_id))
         
         # For simplicity, delete all existing car records for the auto show,
         # then reinsert the submitted ones
@@ -202,20 +220,23 @@ def edit_autoshow(id):
         conn.close()
         return redirect(url_for('index'))
     else:
-        # Fetch current auto show and organizer data
+        # Fetch current auto show data
         query = "SELECT * FROM auto_shows WHERE id = %s"
         cursor.execute(query, (id,))
         autoshow = cursor.fetchone()
         
-        query = "SELECT organization_id FROM auto_show_organizations WHERE auto_show_id = %s"
+        # Fetch all organizations for this auto show
+        query = """
+        SELECT o.* 
+        FROM organizations o
+        JOIN auto_show_organizations aso ON o.id = aso.organization_id
+        WHERE aso.auto_show_id = %s
+        """
         cursor.execute(query, (id,))
-        org_link = cursor.fetchone()
-        organization = {}
-        if org_link:
-            org_id = org_link['organization_id']
-            query = "SELECT * FROM organizations WHERE id = %s"
-            cursor.execute(query, (org_id,))
-            organization = cursor.fetchone()
+        organizations = cursor.fetchall()
+        
+        if not organizations:
+            organizations = [{'name': '', 'contact_info': ''}]
         
         # Fetch all car records for this auto show
         query = "SELECT * FROM auto_show_cars WHERE auto_show_id = %s"
@@ -224,39 +245,50 @@ def edit_autoshow(id):
         
         cursor.close()
         conn.close()
-        return render_template('edit_autoshow.html', autoshow=autoshow, organization=organization, cars=cars)
+        return render_template('edit_autoshow.html', autoshow=autoshow, organizations=organizations, cars=cars)
 
 @app.route('/delete_autoshow/<int:id>', methods=['POST'])
 def delete_autoshow(id):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Retrieve the organization_id
-    query = "SELECT organization_id FROM auto_show_organizations WHERE auto_show_id = %s"
-    cursor.execute(query, (id,))
-    org_result = cursor.fetchone()
-    org_id = org_result[0]
-
     # Delete related car records
     query = "DELETE FROM auto_show_cars WHERE auto_show_id = %s"
     cursor.execute(query, (id,))
     
-    # Delete the linking record
+    # Delete the linking records
     query = "DELETE FROM auto_show_organizations WHERE auto_show_id = %s"
     cursor.execute(query, (id,))
     
     # Delete the auto show record
     query = "DELETE FROM auto_shows WHERE id = %s"
     cursor.execute(query, (id,))
-
-    # Delete the organization record
-    query = "DELETE FROM organizations WHERE id = %s"
-    cursor.execute(query, (org_id,))
     
     conn.commit()
     cursor.close()
     conn.close()
     return redirect(url_for('index'))
+
+@app.route('/view_organizers/<int:auto_show_id>')
+def view_organizers(auto_show_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Retrieve the auto show's name
+    query = "SELECT name FROM auto_shows WHERE id = %s"
+    cursor.execute(query, (auto_show_id,))
+    autoshow_info = cursor.fetchone()
+    auto_show_name = autoshow_info['name']
+    
+    # Call stored procedure to retrieve the organizers for this auto show
+    cursor.callproc('sp_get_autoshow_organizers', (auto_show_id,))
+    organizers = []
+    for result in cursor.stored_results():
+        organizers = result.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return render_template('view_organizers.html', organizers=organizers, auto_show_name=auto_show_name)
 
 if __name__ == '__main__':
     app.run()

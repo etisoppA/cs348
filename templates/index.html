@@ -52,7 +52,6 @@
       <th>State</th>
       <th>Start Date</th>
       <th>End Date</th>
-      <th>Organizer</th>
       <th>Actions</th>
     </tr>
     {% for show in autoshows %}
@@ -62,13 +61,13 @@
       <td>{{ show.state }}</td>
       <td>{{ show.start_date }}</td>
       <td>{{ show.end_date }}</td>
-      <td>{{ show.org_name }}</td>
       <td>
         <a href="{{ url_for('edit_autoshow', id=show.id) }}">Edit</a>
         <form action="{{ url_for('delete_autoshow', id=show.id) }}" method="post" style="display:inline;">
           <button type="submit">Delete</button>
         </form>
         <a href="{{ url_for('view_cars', auto_show_id=show.id) }}">View Cars</a>
+        <a href="{{ url_for('view_organizers', auto_show_id=show.id) }}">View Organizers</a>
       </td>
     </tr>
     {% endfor %}

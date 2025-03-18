@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ auto_show_name }} - Organizers</title>
+</head>
+
+<body>
+    <h1>{{ auto_show_name }} - Organizers</h1>
+    <table border="1">
+        <tr>
+            <th>Organization Name</th>
+            <th>Contact Information</th>
+        </tr>
+        {% for org in organizers %}
+        <tr>
+            <td>{{ org.name }}</td>
+            <td>{{ org.contact_info }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <a href="{{ url_for('index') }}">Back to Home Page</a>
+</body>
+
+</html>
