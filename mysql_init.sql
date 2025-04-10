@@ -153,3 +153,7 @@ BEGIN
     WHERE aso.auto_show_id = p_auto_show_id;
 END //
 DELIMITER ;
+
+CREATE INDEX idx_auto_show_cars_auto_show_id ON auto_show_cars(auto_show_id);
+
+CREATE INDEX idx_auto_show_cars_manufacturer ON auto_show_cars(manufacturer);

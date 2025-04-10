@@ -9,7 +9,8 @@ def get_db_connection():
         host=os.getenv("MYSQL_HOST"),
         user=os.getenv("MYSQL_USER"),
         password=os.getenv("MYSQL_PASSWORD"),
-        database=os.getenv("MYSQL_DATABASE")
+        database=os.getenv("MYSQL_DATABASE"),
+        autocommit=False
     )
 
 @app.route('/')
@@ -128,42 +129,47 @@ def add_autoshow():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Insert auto show
-        query = "INSERT INTO auto_shows (name, city, state, start_date, end_date) VALUES (%s, %s, %s, %s, %s)"
-        cursor.execute(query, (show_name, city, state, start_date, end_date))
-        auto_show_id = cursor.lastrowid
+        try:
+            conn.start_transaction()
+            
+            query = "INSERT INTO auto_shows (name, city, state, start_date, end_date) VALUES (%s, %s, %s, %s, %s)"
+            cursor.execute(query, (show_name, city, state, start_date, end_date))
+            auto_show_id = cursor.lastrowid
 
-        # Process each organizer
-        for org_name, org_contact in zip(org_names, org_contacts):
-            cursor.execute("SELECT id FROM organizations WHERE name = %s", (org_name,))
-            org_result = cursor.fetchone()
-            
-            if org_result:
-                org_id = org_result[0]
-            else:
-                cursor.execute("INSERT INTO organizations (name, contact_info) VALUES (%s, %s)", 
-                             (org_name, org_contact))
-                org_id = cursor.lastrowid
-            
-            cursor.execute("INSERT INTO auto_show_organizations (auto_show_id, organization_id) VALUES (%s, %s)",
-                         (auto_show_id, org_id))
+            for org_name, org_contact in zip(org_names, org_contacts):
+                cursor.execute("SELECT id FROM organizations WHERE name = %s FOR UPDATE", (org_name,))
+                org_result = cursor.fetchone()
+                
+                if org_result:
+                    org_id = org_result[0]
+                else:
+                    cursor.execute("INSERT INTO organizations (name, contact_info) VALUES (%s, %s)", 
+                                 (org_name, org_contact))
+                    org_id = cursor.lastrowid
+                
+                cursor.execute("INSERT INTO auto_show_organizations (auto_show_id, organization_id) VALUES (%s, %s)",
+                             (auto_show_id, org_id))
 
-        # Insert each car for this auto show
-        query = "INSERT INTO auto_show_cars (auto_show_id, manufacturer, model, year, price) VALUES (%s, %s, %s, %s, %s)"
-        for manu, mod, yr, pr in zip(manufacturers, models, years, prices):
-            cursor.execute(query, (auto_show_id, manu, mod, int(yr), float(pr)))
+            query = "INSERT INTO auto_show_cars (auto_show_id, manufacturer, model, year, price) VALUES (%s, %s, %s, %s, %s)"
+            for manu, mod, yr, pr in zip(manufacturers, models, years, prices):
+                cursor.execute(query, (auto_show_id, manu, mod, int(yr), float(pr)))
             
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return redirect(url_for('index'))
+            conn.commit()
+            return redirect(url_for('index'))
+            
+        except mysql.connector.Error as err:
+            print(f"Database error: {err}")
+            conn.rollback()
+            return render_template('error.html', error=f"Database error: {err}")
+        finally:
+            cursor.close()
+            conn.close()
         
     return render_template('add_autoshow.html')
 
 @app.route('/edit_autoshow/<int:id>', methods=['GET', 'POST'])
 def edit_autoshow(id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True, prepared=True)
     
     if request.method == 'POST':
         show_name  = request.form['show_name']
@@ -180,94 +186,128 @@ def edit_autoshow(id):
         years         = request.form.getlist("year[]")
         prices        = request.form.getlist("price[]")
         
-        # Update auto show record
-        query = "UPDATE auto_shows SET name=%s, city=%s, state=%s, start_date=%s, end_date=%s WHERE id=%s"
-        cursor.execute(query, (show_name, city, state, start_date, end_date, id))
+        cursor = conn.cursor(dictionary=True, prepared=True)
         
-        # Remove all existing organizer links
-        query = "DELETE FROM auto_show_organizations WHERE auto_show_id = %s"
-        cursor.execute(query, (id,))
-        
-        # Process each organizer
-        for org_name, org_contact in zip(org_names, org_contacts):
-            cursor.execute("SELECT id FROM organizations WHERE name = %s", (org_name,))
-            org_result = cursor.fetchone()
+        try:
+            conn.start_transaction()
             
-            if org_result:
-                org_id = org_result['id']
-                if org_contact:
-                    cursor.execute("UPDATE organizations SET contact_info=%s WHERE id=%s", 
-                                 (org_contact, org_id))
-            else:
-                cursor.execute("INSERT INTO organizations (name, contact_info) VALUES (%s, %s)", 
-                             (org_name, org_contact))
-                org_id = cursor.lastrowid
+            query = "SELECT id FROM auto_shows WHERE id = %s FOR UPDATE"
+            cursor.execute(query, (id,))
+            cursor.fetchone()
+    
+            # Update auto show record
+            query = "UPDATE auto_shows SET name=%s, city=%s, state=%s, start_date=%s, end_date=%s WHERE id=%s"
+            cursor.execute(query, (show_name, city, state, start_date, end_date, id))
             
-            cursor.execute("INSERT INTO auto_show_organizations (auto_show_id, organization_id) VALUES (%s, %s)",
-                         (id, org_id))
-        
-        # For simplicity, delete all existing car records for the auto show,
-        # then reinsert the submitted ones
-        query = "DELETE FROM auto_show_cars WHERE auto_show_id = %s"
-        cursor.execute(query, (id,))
-        
-        query = "INSERT INTO auto_show_cars (auto_show_id, manufacturer, model, year, price) VALUES (%s, %s, %s, %s, %s)"
-        for manu, mod, yr, pr in zip(manufacturers, models, years, prices):
-            cursor.execute(query, (id, manu, mod, int(yr), float(pr)))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return redirect(url_for('index'))
+            # Remove all existing organizer links
+            query = "DELETE FROM auto_show_organizations WHERE auto_show_id = %s"
+            cursor.execute(query, (id,))
+            
+            # Process each organizer
+            for org_name, org_contact in zip(org_names, org_contacts):
+                cursor.execute("SELECT id FROM organizations WHERE name = %s FOR UPDATE", (org_name,))
+                org_result = cursor.fetchone()
+                
+                if org_result:
+                    org_id = org_result['id']
+                    if org_contact:
+                        cursor.execute("UPDATE organizations SET contact_info=%s WHERE id=%s", 
+                                     (org_contact, org_id))
+                else:
+                    cursor.execute("INSERT INTO organizations (name, contact_info) VALUES (%s, %s)", 
+                                 (org_name, org_contact))
+                    org_id = cursor.lastrowid
+                
+                cursor.execute("INSERT INTO auto_show_organizations (auto_show_id, organization_id) VALUES (%s, %s)",
+                             (id, org_id))
+            
+            # For simplicity, delete all existing car records for the auto show,
+            # then reinsert the submitted ones
+            query = "DELETE FROM auto_show_cars WHERE auto_show_id = %s"
+            cursor.execute(query, (id,))
+            
+            query = "INSERT INTO auto_show_cars (auto_show_id, manufacturer, model, year, price) VALUES (%s, %s, %s, %s, %s)"
+            for manu, mod, yr, pr in zip(manufacturers, models, years, prices):
+                cursor.execute(query, (id, manu, mod, int(yr), float(pr)))
+            
+            conn.commit()
+            return redirect(url_for('index'))
+            
+        except mysql.connector.Error as err:
+            print(f"Database error: {err}")
+            conn.rollback()
+            return render_template('error.html', error=f"Database error: {err}")
+        finally:
+            cursor.close()
+            conn.close()
     else:
-        # Fetch current auto show data
-        query = "SELECT * FROM auto_shows WHERE id = %s"
-        cursor.execute(query, (id,))
-        autoshow = cursor.fetchone()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            conn.start_transaction()
+            
+            # Fetch current auto show data
+            query = "SELECT * FROM auto_shows WHERE id = %s"
+            cursor.execute(query, (id,))
+            autoshow = cursor.fetchone()
+            
+            # Fetch all organizations for this auto show
+            query = """
+            SELECT o.* 
+            FROM organizations o
+            JOIN auto_show_organizations aso ON o.id = aso.organization_id
+            WHERE aso.auto_show_id = %s
+            """
+            cursor.execute(query, (id,))
+            organizations = cursor.fetchall()
+            
+            if not organizations:
+                organizations = [{'name': '', 'contact_info': ''}]
+            
+            # Fetch all car records for this auto show
+            query = "SELECT * FROM auto_show_cars WHERE auto_show_id = %s"
+            cursor.execute(query, (id,))
+            cars = cursor.fetchall()
+            
+            conn.commit()
+            return render_template('edit_autoshow.html', autoshow=autoshow, organizations=organizations, cars=cars)
         
-        # Fetch all organizations for this auto show
-        query = """
-        SELECT o.* 
-        FROM organizations o
-        JOIN auto_show_organizations aso ON o.id = aso.organization_id
-        WHERE aso.auto_show_id = %s
-        """
-        cursor.execute(query, (id,))
-        organizations = cursor.fetchall()
-        
-        if not organizations:
-            organizations = [{'name': '', 'contact_info': ''}]
-        
-        # Fetch all car records for this auto show
-        query = "SELECT * FROM auto_show_cars WHERE auto_show_id = %s"
-        cursor.execute(query, (id,))
-        cars = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        return render_template('edit_autoshow.html', autoshow=autoshow, organizations=organizations, cars=cars)
+        except mysql.connector.Error as err:
+            conn.rollback()
+            return render_template('error.html', error=f"Database error: {err}")
+        finally:
+            cursor.close()
+            conn.close()
 
 @app.route('/delete_autoshow/<int:id>', methods=['POST'])
 def delete_autoshow(id):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Delete related car records
-    query = "DELETE FROM auto_show_cars WHERE auto_show_id = %s"
-    cursor.execute(query, (id,))
-    
-    # Delete the linking records
-    query = "DELETE FROM auto_show_organizations WHERE auto_show_id = %s"
-    cursor.execute(query, (id,))
-    
-    # Delete the auto show record
-    query = "DELETE FROM auto_shows WHERE id = %s"
-    cursor.execute(query, (id,))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return redirect(url_for('index'))
+    try:
+        conn.start_transaction()
+        
+        cursor.execute("SELECT id FROM auto_shows WHERE id = %s FOR UPDATE", (id,))
+        cursor.fetchone()
+        
+        query = "DELETE FROM auto_show_cars WHERE auto_show_id = %s"
+        cursor.execute(query, (id,))
+        
+        query = "DELETE FROM auto_show_organizations WHERE auto_show_id = %s"
+        cursor.execute(query, (id,))
+        
+        query = "DELETE FROM auto_shows WHERE id = %s"
+        cursor.execute(query, (id,))
+        
+        conn.commit()
+        return redirect(url_for('index'))
+        
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        conn.rollback()
+        return render_template('error.html', error=f"Database error: {err}")
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/view_organizers/<int:auto_show_id>')
 def view_organizers(auto_show_id):

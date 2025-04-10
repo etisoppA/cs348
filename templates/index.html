@@ -41,6 +41,7 @@
     <button type="submit">Apply Filters</button>
   </form>
 
+  <h2>Report</h2>
   <p>Total Cars: {{ total_cars }}</p>
   <p>Average Price: {% if avg_price is not none %}${{ avg_price|round(2) }}{% else %}N/A{% endif %}</p>
 
