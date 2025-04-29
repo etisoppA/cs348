@@ -5,13 +5,23 @@ import os
 app = Flask(__name__)
 
 def get_db_connection():
-    return mysql.connector.connect(
-        host=os.getenv("MYSQL_HOST"),
-        user=os.getenv("MYSQL_USER"),
-        password=os.getenv("MYSQL_PASSWORD"),
-        database=os.getenv("MYSQL_DATABASE"),
-        autocommit=False
-    )
+    if os.getenv('GAE_ENV', '').startswith('standard'):
+        return mysql.connector.connect(
+            unix_socket=os.getenv("MYSQL_UNIX_SOCKET"),
+            user=os.getenv("MYSQL_USER"),
+            password=os.getenv("MYSQL_PASSWORD"),
+            database=os.getenv("MYSQL_DATABASE"),
+            autocommit=False
+        )
+    else:
+        # Local development
+        return mysql.connector.connect(
+            host=os.getenv("MYSQL_HOST", "localhost"),
+            user=os.getenv("MYSQL_USER"),
+            password=os.getenv("MYSQL_PASSWORD"),
+            database=os.getenv("MYSQL_DATABASE"),
+            autocommit=False
+        )
 
 @app.route('/')
 def index():
@@ -331,4 +341,4 @@ def view_organizers(auto_show_id):
     return render_template('view_organizers.html', organizers=organizers, auto_show_name=auto_show_name)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='127.0.0.1', port=8080, debug=True)
