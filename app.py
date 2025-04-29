@@ -196,8 +196,7 @@ def edit_autoshow(id):
         years         = request.form.getlist("year[]")
         prices        = request.form.getlist("price[]")
         
-        cursor = conn.cursor(dictionary=True, prepared=True)
-        
+        cursor = conn.cursor(dictionary=True)       
         try:
             conn.start_transaction()
             
